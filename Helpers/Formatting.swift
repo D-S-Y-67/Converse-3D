@@ -6,3 +6,7 @@ func formatTime(_ t: Double) -> String {
     let s = t - Double(m * 60)
     return String(format: "%d:%05.2f", m, s)
 }
+
+func formatPosition(_ p: Int) -> String {
+    "P\(p)"
+}

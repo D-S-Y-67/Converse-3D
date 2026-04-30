@@ -3,23 +3,20 @@ import SwiftUI
 struct ReadyScreen: View {
     let car: CarConfig
     let tread: TreadConfig
+    let track: TrackLayout
     let onGo: () -> Void
     let onBack: () -> Void
-    @State private var count = 3
-    @State private var timer: Timer?
 
     private var bg: some View {
-        LinearGradient(colors: [Color.black, Color(red: 0.10, green: 0.05, blue: 0.20)],
-                       startPoint: .top, endPoint: .bottom)
+        LinearGradient(colors: [
+            Color.black,
+            Color(red: 0.10, green: 0.05, blue: 0.20)
+        ], startPoint: .top, endPoint: .bottom)
         .ignoresSafeArea()
     }
 
     private var backButton: some View {
-        Button(action: {
-            timer?.invalidate()
-            timer = nil
-            onBack()
-        }) {
+        Button(action: onBack) {
             Image(systemName: "chevron.left")
                 .font(.system(size: 18, weight: .heavy))
                 .foregroundStyle(.white)
@@ -28,28 +25,49 @@ struct ReadyScreen: View {
         }
     }
 
+    private var trackPreview: some View {
+        VStack(spacing: 6) {
+            TrackSilhouette(waypoints: track.waypoints,
+                            accent: Color(track.accentColor))
+                .frame(width: 200, height: 130)
+            HStack(spacing: 6) {
+                Text(track.country).font(.system(size: 18))
+                Text(track.name.uppercased())
+                    .font(.system(size: 22, weight: .black))
+                    .kerning(2.5)
+                    .foregroundStyle(.white)
+            }
+        }
+    }
+
     private var carInfo: some View {
-        VStack(spacing: 8) {
-            MiniCarIllustration(bodyColor: car.bodyColor, cabinColor: car.cabinColor,
-                                width: 140, height: 80)
+        VStack(spacing: 4) {
+            MiniCarIllustration(bodyColor: car.bodyColor,
+                                cabinColor: car.cabinColor,
+                                width: 130, height: 70)
             Text(car.name.uppercased())
-                .font(.system(size: 28, weight: .black))
-                .kerning(3)
+                .font(.system(size: 22, weight: .black))
+                .kerning(2.5)
                 .foregroundStyle(.white)
-            Text("on \(tread.name) treads")
-                .font(.system(size: 14, weight: .bold))
+            Text("\(tread.name) compound · 3 laps")
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.white.opacity(0.6))
         }
     }
 
-    private var countdownLabel: some View {
-        Text(count > 0 ? "\(count)" : "GO!")
-            .font(.system(size: 130, weight: .black, design: .rounded))
-            .foregroundStyle(count > 0 ? Color(red: 1, green: 0.5, blue: 0.3) : .green)
-            .shadow(color: count > 0 ? .orange : .green, radius: 30)
-            .id(count)
-            .transition(.scale.combined(with: .opacity))
-            .animation(.spring(response: 0.3, dampingFraction: 0.5), value: count)
+    private var startButton: some View {
+        Button(action: onGo) {
+            HStack(spacing: 10) {
+                Image(systemName: "flag.checkered.2.crossed")
+                Text("TO THE GRID").kerning(2)
+            }
+            .font(.system(size: 18, weight: .heavy))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 50)
+            .padding(.vertical, 16)
+            .background(Capsule().fill(.white))
+            .shadow(color: .white.opacity(0.4), radius: 14)
+        }
     }
 
     var body: some View {
@@ -58,29 +76,13 @@ struct ReadyScreen: View {
             VStack(spacing: 24) {
                 HStack { backButton; Spacer() }
                 Spacer()
+                trackPreview
                 carInfo
                 Spacer()
-                countdownLabel
-                Spacer()
+                startButton
+                    .padding(.bottom, 20)
             }
             .padding()
-        }
-        .onAppear {
-            count = 3
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                if count > 1 { count -= 1 }
-                else if count == 1 {
-                    count = 0
-                } else {
-                    timer?.invalidate()
-                    timer = nil
-                    onGo()
-                }
-            }
-        }
-        .onDisappear {
-            timer?.invalidate()
-            timer = nil
         }
     }
 }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SpeedBadge: View {
     let speed: Float
-    var kmh: Int { Int(speed * 4.2) }
+    var kmh: Int { Int(speed * 3.6) }
 
     private var speedNumber: some View {
         Text("\(kmh)")

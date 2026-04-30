@@ -28,7 +28,7 @@ struct SplashScreen: View {
 
     private var titleStack: some View {
         VStack(spacing: 6) {
-            Text("CRUISER 3D")
+            Text("CIRCUIT 3D")
                 .font(.system(size: 44, weight: .black, design: .rounded))
                 .kerning(3)
                 .foregroundStyle(.white)
@@ -73,7 +73,7 @@ struct SplashScreen: View {
     }
 
     private var hintText: some View {
-        Text("HOLD GAS · TAP TURN · DRIFT TO SLIDE")
+        Text("HOLD GAS · STEER · DRS ON STRAIGHTS")
             .font(.system(size: 10, weight: .bold))
             .kerning(2)
             .foregroundStyle(.white.opacity(0.4))

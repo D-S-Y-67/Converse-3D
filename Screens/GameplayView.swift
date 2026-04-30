@@ -6,7 +6,8 @@ struct GameplayView: View {
 
     private var topHUD: some View {
         HStack(alignment: .top) {
-            ScoreBadge(score: state.score)
+            PositionBadge(position: state.playerPosition,
+                          total: state.totalCars)
             Spacer()
             LapBadge(lap: state.lap, total: state.totalLaps,
                      lapTime: state.lapTime, bestLap: state.bestLapTime)
@@ -17,10 +18,11 @@ struct GameplayView: View {
         .padding(.top, 18)
     }
 
-    private var powerUpRow: some View {
+    private var drsRow: some View {
         Group {
-            if let pu = state.activePowerUp {
-                PowerUpIndicator(type: pu, timeRemaining: state.powerUpTimeRemaining)
+            if state.racePhase == .racing {
+                DRSIndicator(active: state.drsActive,
+                             available: state.drsAvailable)
                     .padding(.top, 10)
                     .transition(.scale.combined(with: .opacity))
             }
@@ -51,14 +53,16 @@ struct GameplayView: View {
         }
     }
 
-    private var driftControl: some View {
+    private var drsControl: some View {
         VStack(spacing: 6) {
-            ControlButton(symbol: "tornado", tint: .orange,
-                          isPressed: $state.driftHeld)
-            Text("DRIFT")
+            ControlButton(symbol: "arrow.up.to.line",
+                          tint: state.drsActive ? .green : .yellow,
+                          isPressed: $state.drsHeld)
+            Text(state.drsActive ? "DRS ON" : "DRS")
                 .font(.system(size: 9, weight: .black))
                 .kerning(1.5)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(state.drsActive
+                                 ? .green : .white.opacity(0.6))
         }
         .padding(.bottom, 4)
     }
@@ -76,7 +80,7 @@ struct GameplayView: View {
         HStack(alignment: .bottom) {
             leftControls
             Spacer()
-            driftControl
+            drsControl
             Spacer()
             rightControls
         }
@@ -84,19 +88,32 @@ struct GameplayView: View {
         .padding(.bottom, 26)
     }
 
+    private var startLightsOverlay: some View {
+        Group {
+            if state.racePhase == .countdown {
+                VStack {
+                    RaceStartLights(countdown: state.countdownValue)
+                        .padding(.top, 80)
+                    Spacer()
+                }
+            }
+        }
+    }
+
     var body: some View {
         ZStack {
             GameSceneView(state: state).ignoresSafeArea()
+            startLightsOverlay
             VStack(spacing: 0) {
                 topHUD
-                powerUpRow
+                drsRow
                 Spacer()
                 pauseButton
                 Spacer()
                 bottomControls
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.7),
-                       value: state.activePowerUp)
+                       value: state.drsActive)
         }
         .preferredColorScheme(.dark)
     }

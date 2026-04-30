@@ -127,7 +127,7 @@ struct CarCard: View {
             if locked {
                 HStack(spacing: 4) {
                     Image(systemName: "lock.fill").font(.system(size: 10))
-                    Text("Score \(car.unlockScore) to unlock")
+                    Text("\(car.unlockScore) reputation to unlock")
                         .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundStyle(.orange)
@@ -142,9 +142,9 @@ struct CarCard: View {
 
     private var statsRow: some View {
         HStack(spacing: 8) {
-            StatBar(label: "SPD", value: (car.topSpeed - 18) / 14)
-            StatBar(label: "ACC", value: (car.acceleration - 18) / 12)
-            StatBar(label: "HND", value: (2.1 - car.handling) / 0.6)
+            StatBar(label: "SPD", value: (car.topSpeed - 50) / 30)
+            StatBar(label: "ACC", value: (car.acceleration - 28) / 18)
+            StatBar(label: "HND", value: (2.6 - car.handling) / 0.9)
         }
     }
 

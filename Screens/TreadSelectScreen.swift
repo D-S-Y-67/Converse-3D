@@ -53,7 +53,7 @@ struct TreadSelectScreen: View {
     private var readyButton: some View {
         Button(action: onNext) {
             HStack(spacing: 10) {
-                Text("READY").kerning(2)
+                Text("PICK CIRCUIT").kerning(2)
                 Image(systemName: "flag.checkered")
                     .font(.system(size: 16, weight: .heavy))
             }
