@@ -412,6 +412,7 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         let lapsCopy = playerLapsDone
         let lapCopy = liveLapTime
         let bestCopy = bestLap
+        let drsActiveCopy = drsActive
         DispatchQueue.main.async { [weak self] in
             guard let st = self?.state else { return }
             st.speed = s
@@ -420,7 +421,7 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
             st.bestLapTime = bestCopy
             st.playerPosition = position
             st.drsAvailable = drsAvail
-            st.drsActive = drsActive
+            st.drsActive = drsActiveCopy
         }
     }
 
