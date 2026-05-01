@@ -5,8 +5,17 @@ struct TrackSelectScreen: View {
     let onNext: () -> Void
     let onBack: () -> Void
 
-    private var bg: some View {
-        Color.black.ignoresSafeArea()
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(spacing: 16) {
+                topBar
+                title
+                list
+                footerButton
+            }
+            .padding(20)
+        }
     }
 
     private var topBar: some View {
@@ -26,27 +35,33 @@ struct TrackSelectScreen: View {
         VStack(spacing: 4) {
             Text("CHOOSE YOUR CIRCUIT")
                 .font(.system(size: 20, weight: .black, design: .rounded))
-                .kerning(2)
-                .foregroundStyle(.white)
+                .kerning(2).foregroundStyle(.white)
             Text("Five iconic Grand Prix layouts")
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.6))
+                .font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
         }
     }
 
-    private var trackList: some View {
+    private var list: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            LazyVStack(spacing: 14) {
                 ForEach(TrackLayout.all) { layout in
-                    TrackCard(layout: layout,
-                              selected: selected == layout.id,
-                              onTap: { selected = layout.id })
+                    row(layout)
                 }
             }
         }
     }
 
-    private var startButton: some View {
+    @ViewBuilder
+    private func row(_ layout: TrackLayout) -> some View {
+        let isSelected = selected == layout.id
+        TrackCard(
+            layout: layout,
+            selected: isSelected,
+            onTap: { selected = layout.id }
+        )
+    }
+
+    private var footerButton: some View {
         Button(action: onNext) {
             HStack(spacing: 10) {
                 Text("LIGHTS OUT").kerning(2)
@@ -55,22 +70,8 @@ struct TrackSelectScreen: View {
             }
             .font(.system(size: 17, weight: .heavy))
             .foregroundStyle(.black)
-            .padding(.horizontal, 50)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 50).padding(.vertical, 16)
             .background(Capsule().fill(.white))
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            bg
-            VStack(spacing: 16) {
-                topBar
-                title
-                trackList
-                startButton
-            }
-            .padding(20)
         }
     }
 }
