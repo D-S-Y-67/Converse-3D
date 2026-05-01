@@ -8,18 +8,21 @@ struct TrackLayout: Identifiable {
     let accentColor: UIColor
     let waypoints: [SIMD2<Float>]
     let trackWidth: Float
+    let lapCount: Int
 
     private let samples: [SIMD2<Float>]
     private let segmentLengths: [Float]
     let totalLength: Float
 
     init(id: Int, name: String, country: String, accentColor: UIColor,
-         trackWidth: Float, waypoints: [SIMD2<Float>]) {
+         trackWidth: Float, lapCount: Int,
+         waypoints: [SIMD2<Float>]) {
         self.id = id
         self.name = name
         self.country = country
         self.accentColor = accentColor
         self.trackWidth = trackWidth
+        self.lapCount = lapCount
         self.waypoints = waypoints
 
         let n = 512
@@ -122,7 +125,7 @@ struct TrackLayout: Identifiable {
     static let silverstone = TrackLayout(
         id: 0, name: "Silverstone", country: "🇬🇧",
         accentColor: UIColor(red: 0.0, green: 0.45, blue: 0.85, alpha: 1),
-        trackWidth: 22,
+        trackWidth: 22, lapCount: 52,
         waypoints: [
             SIMD2(  0, -60), SIMD2( 22, -58), SIMD2( 50, -50), SIMD2( 62, -30),
             SIMD2( 58,  -5), SIMD2( 42,  18), SIMD2( 22,  30), SIMD2(  0,  35),
@@ -133,7 +136,7 @@ struct TrackLayout: Identifiable {
     static let monaco = TrackLayout(
         id: 1, name: "Monaco", country: "🇲🇨",
         accentColor: UIColor(red: 0.85, green: 0.1, blue: 0.1, alpha: 1),
-        trackWidth: 18,
+        trackWidth: 18, lapCount: 78,
         waypoints: [
             SIMD2(  0, -55), SIMD2( 18, -58), SIMD2( 35, -48), SIMD2( 48, -32),
             SIMD2( 50, -10), SIMD2( 42,  10), SIMD2( 28,  18), SIMD2( 18,  10),
@@ -145,7 +148,7 @@ struct TrackLayout: Identifiable {
     static let spa = TrackLayout(
         id: 2, name: "Spa", country: "🇧🇪",
         accentColor: UIColor(red: 0.95, green: 0.7, blue: 0.0, alpha: 1),
-        trackWidth: 22,
+        trackWidth: 22, lapCount: 44,
         waypoints: [
             SIMD2(  0, -58), SIMD2( 12, -62), SIMD2(  2, -52), SIMD2(-18, -42),
             SIMD2(-28, -20), SIMD2(-30,   5), SIMD2(-22,  28), SIMD2( -2,  38),
@@ -157,7 +160,7 @@ struct TrackLayout: Identifiable {
     static let monza = TrackLayout(
         id: 3, name: "Monza", country: "🇮🇹",
         accentColor: UIColor(red: 0.85, green: 0.05, blue: 0.05, alpha: 1),
-        trackWidth: 24,
+        trackWidth: 24, lapCount: 53,
         waypoints: [
             SIMD2(  0, -62), SIMD2( 32, -60), SIMD2( 48, -52), SIMD2( 42, -38),
             SIMD2( 52, -18), SIMD2( 58,   8), SIMD2( 48,  28), SIMD2( 28,  42),
@@ -168,7 +171,7 @@ struct TrackLayout: Identifiable {
     static let suzuka = TrackLayout(
         id: 4, name: "Suzuka", country: "🇯🇵",
         accentColor: UIColor(red: 0.95, green: 0.4, blue: 0.0, alpha: 1),
-        trackWidth: 20,
+        trackWidth: 20, lapCount: 53,
         waypoints: [
             SIMD2(  0, -60), SIMD2( 22, -58), SIMD2( 40, -45), SIMD2( 50, -22),
             SIMD2( 42,  -2), SIMD2( 52,  18), SIMD2( 42,  38), SIMD2( 18,  42),

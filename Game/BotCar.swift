@@ -7,6 +7,7 @@ final class BotCar {
     var velocity: Float
     var trackProgress: Float
     var lapsDone: Int
+    let gridOffset: Float
     var lastLapStart: TimeInterval = 0
     var bestLap: Double = 0
     var finishTime: Double = 0
@@ -43,6 +44,7 @@ final class BotCar {
         self.heading = heading
         self.velocity = 0
         self.trackProgress = trackProgress
+        self.gridOffset = trackProgress
         self.lapsDone = 0
         self.baseTopSpeed = topSpeed
         self.acceleration = acceleration
@@ -65,7 +67,13 @@ final class BotCar {
         node.eulerAngles.y = heading
     }
 
-    var lapProgress: Float { Float(lapsDone) + trackProgress }
+    var lapProgress: Float {
+        lapProgressFor(laps: lapsDone, t: trackProgress)
+    }
+
+    private func lapProgressFor(laps: Int, t: Float) -> Float {
+        Float(laps) + t - gridOffset
+    }
 
     func tick(dt: Float, time: TimeInterval, layout: TrackLayout,
               totalLaps: Int) {
@@ -121,7 +129,7 @@ final class BotCar {
                 if bestLap == 0 || lapDuration < bestLap { bestLap = lapDuration }
             }
             lastLapStart = time
-            if lapsDone >= totalLaps {
+            if lapProgressFor(laps: lapsDone, t: newT) >= Float(totalLaps) {
                 hasFinished = true
                 finishTime = time
             }
@@ -168,7 +176,7 @@ final class BotCar {
             let clamped = centerP + n * limit
             position.x = clamped.x
             position.z = clamped.y
-            velocity *= 0.85
+            velocity *= 0.94
         }
     }
 

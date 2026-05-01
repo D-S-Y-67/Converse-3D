@@ -21,7 +21,7 @@ struct TrackCard: View {
                     .kerning(1.5)
                     .foregroundStyle(.white)
             }
-            Text("\(layout.waypoints.count) corners · width \(Int(layout.trackWidth))")
+            Text("\(layout.lapCount) laps · width \(Int(layout.trackWidth))")
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.65))
             HStack(spacing: 4) {
