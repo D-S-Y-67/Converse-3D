@@ -47,12 +47,16 @@ struct TrackLayout: Identifiable {
     static func catmullRom(_ p0: SIMD2<Float>, _ p1: SIMD2<Float>,
                            _ p2: SIMD2<Float>, _ p3: SIMD2<Float>,
                            t: Float) -> SIMD2<Float> {
-        let t2 = t * t
-        let t3 = t2 * t
-        return 0.5 * ((2 * p1)
-            + (p2 - p0) * t
-            + (2*p0 - 5*p1 + 4*p2 - p3) * t2
-            + (-p0 + 3*p1 - 3*p2 + p3) * t3)
+        let t2: Float = t * t
+        let t3: Float = t2 * t
+        let term1: SIMD2<Float> = p1 * 2.0
+        let term2: SIMD2<Float> = (p2 - p0) * t
+        let inner3: SIMD2<Float> = p0 * 2.0 - p1 * 5.0 + p2 * 4.0 - p3
+        let term3: SIMD2<Float> = inner3 * t2
+        let inner4: SIMD2<Float> = p1 * 3.0 - p0 - p2 * 3.0 + p3
+        let term4: SIMD2<Float> = inner4 * t3
+        let sum: SIMD2<Float> = term1 + term2 + term3 + term4
+        return sum * 0.5
     }
 
     static func evaluate(waypoints: [SIMD2<Float>], t: Float) -> SIMD2<Float> {
@@ -89,8 +93,8 @@ struct TrackLayout: Identifiable {
         let d1 = p1 - p0
         let d2 = p2 - p1
         let cross = d1.x * d2.y - d1.y * d2.x
-        let mag = simd_length(d1) * simd_length(d2) * simd_length(d2 - d1)
-        return mag < 0.0001 ? 0 : abs(cross) / max(mag, 0.0001)
+        let mag: Float = simd_length(d1) * simd_length(d2) * simd_length(d2 - d1)
+        return mag < 0.0001 ? 0.0 : abs(cross) / max(mag, 0.0001)
     }
 
     func isDRSZone(at t: Float) -> Bool {
