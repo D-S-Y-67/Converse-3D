@@ -44,7 +44,8 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
     private let camDist: Float = 13
     private let camHeight: Float = 6
     private let drsDuration: Double = 5.0
-    private let drsCooldownTime: Double = 8.0
+    private let drsCooldownTime: Double = 4.0
+    private let drsGapMeters: Float = 12.0
 
     init(state: GameState) {
         self.state = state
@@ -260,7 +261,6 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         for bot in bots {
             bot.tick(dt: dt, time: time, layout: layout,
                      totalLaps: totalLaps)
-            bot.setRearWing(open: false)
         }
         resolveCarCollisions()
         updatePlayerLapProgress(time: time, totalLaps: totalLaps)
@@ -388,7 +388,9 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         let lapTimeRounded = Double(Int(liveLapTime * 10)) / 10
         let position = computePlayerPosition()
         let inZone = layout.isDRSZone(at: lastProgress)
-        let drsAvail = drsCooldown <= 0 && !drsActive && inZone
+        let gapAhead = nearestGapAhead()
+        let drsAvail = drsCooldown <= 0 && !drsActive
+            && inZone && gapAhead <= drsGapMeters
         let phase = state.racePhase
 
         if speedRounded == publishedSpeed
@@ -433,7 +435,11 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         let throttle = state.throttleInput
 
         let inDRSZone = layout.isDRSZone(at: lastProgress)
-        updateDRSState(dt: dt, inZone: inDRSZone, drsHeld: state.drsHeld)
+        let hasCarAhead = nearestGapAhead() <= drsGapMeters
+        updateDRSState(dt: dt, inZone: inDRSZone,
+                       hasCarAhead: hasCarAhead,
+                       drsHeld: state.drsHeld,
+                       brakeHeld: state.brakeHeld)
 
         let drsBoost: Float = drsActive ? 1.22 : 1.0
         let baseFwd = car.topSpeed * drsBoost
@@ -467,17 +473,21 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         newPos.z += -cos(heading) * velocity * dt
 
         let xz = SIMD2<Float>(newPos.x, newPos.z)
-        let dCenter = layout.distanceFromCenterline(xz)
-        let halfW = layout.trackWidth / 2
-        if dCenter > halfW + 1.2 {
-            velocity *= 0.92
-        }
-        if dCenter > halfW + 6 {
-            let t = layout.trackProgress(for: xz)
-            let centerP = layout.point(at: t)
-            let pull: Float = 0.18
-            newPos.x += (centerP.x - newPos.x) * pull
-            newPos.z += (centerP.y - newPos.z) * pull
+        let t = layout.trackProgress(for: xz)
+        let centerP = layout.point(at: t)
+        let off = xz - centerP
+        let dist = simd_length(off)
+        let limit = layout.trackWidth / 2 - 0.6
+        if dist > limit && dist > 0.001 {
+            let n = off / dist
+            let clamped = centerP + n * limit
+            newPos.x = clamped.x
+            newPos.z = clamped.y
+            let h = carNode.eulerAngles.y
+            let fwd = SIMD2<Float>(-sin(h), -cos(h))
+            let along = simd_dot(SIMD2<Float>(-sin(h), -cos(h)) * velocity,
+                                 fwd)
+            velocity = along * 0.78
         }
 
         let from = SCNVector3(newPos.x, newPos.y + 12, newPos.z)
@@ -519,25 +529,35 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         }
     }
 
-    private func updateDRSState(dt: Float, inZone: Bool, drsHeld: Bool) {
+    private func updateDRSState(dt: Float, inZone: Bool,
+                                hasCarAhead: Bool,
+                                drsHeld: Bool, brakeHeld: Bool) {
         if drsActive {
             drsTimeRemaining -= Double(dt)
-            if drsTimeRemaining <= 0 || !inZone {
+            if drsTimeRemaining <= 0 || !inZone || brakeHeld {
                 drsActive = false
                 drsCooldown = drsCooldownTime
-                if let wing = rearWingFlap {
-                    wing.eulerAngles.x += (0 - wing.eulerAngles.x) * 0.5
-                }
             }
         } else {
             if drsCooldown > 0 {
                 drsCooldown = max(0, drsCooldown - Double(dt))
-            } else if drsHeld && inZone {
+            } else if drsHeld && inZone && hasCarAhead {
                 drsActive = true
                 drsTimeRemaining = drsDuration
             }
         }
         rearWingFlap?.eulerAngles.x = drsActive ? -0.35 : 0
+    }
+
+    private func nearestGapAhead() -> Float {
+        let pp = Float(playerLapsDone) + lastProgress
+        var best: Float = .greatestFiniteMagnitude
+        for b in bots {
+            let gap = b.lapProgress - pp
+            if gap > 0 && gap < best { best = gap }
+        }
+        if best == .greatestFiniteMagnitude { return .greatestFiniteMagnitude }
+        return best * layout.totalLength
     }
 
     private func isDescendantOfCar(_ node: SCNNode) -> Bool {
@@ -550,13 +570,15 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func addPlayerCar() {
+        let team = state?.playerTeam ?? car.team
         let built = F1CarBuilder.build(
-            bodyColor: car.body,
-            accentColor: layout.accentColor,
-            cabinColor: car.cabin,
+            bodyColor: team.primary,
+            accentColor: team.secondary,
+            cabinColor: team.secondary,
             treadRadius: tread.radius,
             treadColor: tread.color,
-            treadStripeColor: tread.stripeColor)
+            treadStripeColor: tread.stripeColor,
+            decal: team.abbrev)
         carNode.addChildNode(built.node)
         rearWingFlap = built.rearWingFlap
         smokeEmitters = built.smokeEmitters
@@ -570,52 +592,66 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         lastProgress = startT
     }
 
-    private static let botLiveries: [(name: String, body: UIColor, accent: UIColor)] = [
-        ("Aero",   UIColor(red: 0.0, green: 0.45, blue: 0.95, alpha: 1),
-                   UIColor.white),
-        ("Stinger",UIColor(red: 0.85, green: 0.0, blue: 0.05, alpha: 1),
-                   UIColor(red: 1, green: 0.85, blue: 0.10, alpha: 1)),
-        ("Forge",  UIColor(red: 0.00, green: 0.55, blue: 0.30, alpha: 1),
-                   UIColor(red: 0.85, green: 0.75, blue: 0.0, alpha: 1)),
-        ("Volt",   UIColor(red: 0.96, green: 0.85, blue: 0.0, alpha: 1),
-                   UIColor.black),
-        ("Blaze",  UIColor(red: 0.95, green: 0.40, blue: 0.0, alpha: 1),
-                   UIColor(red: 0.05, green: 0.05, blue: 0.18, alpha: 1))
-    ]
+    private func botRoster(playerTeam: F1Team) -> [(team: F1Team, name: String)] {
+        let names: [F1Team: [String]] = [
+            .ferrari: ["LECLERC", "HAMILTON"],
+            .mercedes: ["RUSSELL", "ANTONELLI"],
+            .mclaren: ["NORRIS", "PIASTRI"],
+            .redBull: ["VERSTAPPEN", "TSUNODA"],
+            .astonMartin: ["ALONSO", "STROLL"],
+            .alpine: ["GASLY", "DOOHAN"],
+            .williams: ["ALBON", "SAINZ"],
+            .haas: ["OCON", "BEARMAN"],
+            .racingBulls: ["LAWSON", "HADJAR"],
+            .audi: ["HULKENBERG", "BORTOLETO"],
+            .cadillac: ["PEREZ", "BOTTAS"]
+        ]
+        var roster: [(F1Team, String)] = []
+        for team in F1Team.allCases {
+            let pair = names[team] ?? ["#1", "#2"]
+            if team == playerTeam {
+                roster.append((team, pair[1]))
+            } else {
+                roster.append((team, pair[0]))
+                roster.append((team, pair[1]))
+            }
+        }
+        return roster
+    }
 
     private func spawnBotsOnGrid() {
-        let grid: [(row: Int, side: Float)] = [
-            (1, -1), (1, +1),
-            (2, -1), (2, +1),
-            (3,  0)
-        ]
         let startT: Float = 0
         let startP = layout.point(at: startT)
         let tang = layout.tangent(at: startT)
         let perp = SIMD2<Float>(-tang.y, tang.x)
         let backward = -tang
-        let rowSpacing: Float = 5.5
-        let lateralOff: Float = 3.0
+        let rowSpacing: Float = 5.2
+        let lateralOff: Float = 2.8
         let baseHeading = atan2(-tang.x, -tang.y)
 
-        let speeds: [Float] = [0.95, 0.92, 0.90, 0.88, 0.86]
-        let skills: [Float] = [3.4, 3.0, 2.8, 2.5, 2.2]
+        let playerTeam = state?.playerTeam ?? .ferrari
+        let roster = botRoster(playerTeam: playerTeam)
 
-        for (i, slot) in grid.enumerated() {
-            let liv = Self.botLiveries[i % Self.botLiveries.count]
+        for (i, entry) in roster.enumerated() {
+            let row = (i / 2) + 1
+            let side: Float = (i % 2 == 0) ? -1 : +1
+            let speedScale = 0.99 - Float(i) * 0.005
+            let skill: Float = 3.6 - Float(i) * 0.06
+            let lateralJitter: Float = Float(i % 5 - 2) * 0.7
             let pos2D = startP
-                + backward * (Float(slot.row) * rowSpacing)
-                + perp * (slot.side * lateralOff)
-            let pos = SCNVector3(pos2D.x, Float(tread.radius) + 0.1, pos2D.y)
+                + backward * (Float(row) * rowSpacing)
+                + perp * (side * lateralOff)
+            let pos = SCNVector3(pos2D.x,
+                                 Float(tread.radius) + 0.1, pos2D.y)
             let bot = BotCar(
                 position: pos, heading: baseHeading,
                 trackProgress: startT,
-                topSpeed: car.topSpeed * speeds[i] + Float.random(in: -1.5...1.5),
-                acceleration: car.acceleration * 0.92 + Float.random(in: -1.0...1.0),
-                cornerSkill: skills[i],
-                lateralBias: [-2.0, 1.5, -1.0, 1.0, 0][i % 5],
-                bodyColor: liv.body, accentColor: liv.accent,
-                name: liv.name,
+                topSpeed: car.topSpeed * speedScale,
+                acceleration: car.acceleration * 0.94,
+                cornerSkill: skill,
+                lateralBias: lateralJitter,
+                team: entry.team,
+                driverName: entry.name,
                 treadRadius: tread.radius,
                 treadColor: tread.color,
                 treadStripeColor: tread.stripeColor)

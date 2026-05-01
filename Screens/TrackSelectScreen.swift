@@ -6,11 +6,7 @@ struct TrackSelectScreen: View {
     let onBack: () -> Void
 
     private var bg: some View {
-        LinearGradient(colors: [
-            Color(red: 0.05, green: 0.08, blue: 0.18),
-            Color(red: 0.18, green: 0.05, blue: 0.20)
-        ], startPoint: .top, endPoint: .bottom)
-        .ignoresSafeArea()
+        Color.black.ignoresSafeArea()
     }
 
     private var topBar: some View {

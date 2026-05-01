@@ -6,21 +6,17 @@ struct SplashScreen: View {
     @State private var pulse = false
 
     private var bgGradient: some View {
-        LinearGradient(colors: [
-            Color(red: 0.05, green: 0.08, blue: 0.18),
-            Color(red: 0.18, green: 0.08, blue: 0.30)
-        ], startPoint: .top, endPoint: .bottom)
-        .ignoresSafeArea()
+        Color.black.ignoresSafeArea()
+    }
+
+    private var teamAccent: Color {
+        UserProfile.shared.favoriteTeam.primaryColor
     }
 
     private var carIcon: some View {
         Image(systemName: "car.side.fill")
             .font(.system(size: 80, weight: .heavy))
-            .foregroundStyle(LinearGradient(
-                colors: [Color(red: 1, green: 0.5, blue: 0.3),
-                         Color(red: 1, green: 0.85, blue: 0.4)],
-                startPoint: .leading, endPoint: .trailing))
-            .shadow(color: .orange.opacity(0.6), radius: 20)
+            .foregroundStyle(teamAccent)
             .scaleEffect(pulse ? 1.05 : 1)
             .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true),
                        value: pulse)
@@ -28,14 +24,16 @@ struct SplashScreen: View {
 
     private var titleStack: some View {
         VStack(spacing: 6) {
-            Text("CIRCUIT 3D")
-                .font(.system(size: 44, weight: .black, design: .rounded))
-                .kerning(3)
+            Rectangle().fill(teamAccent)
+                .frame(width: 80, height: 3)
+            Text("APEX")
+                .font(.system(size: 56, weight: .black))
+                .kerning(8)
                 .foregroundStyle(.white)
-            Text("CIRCUIT EDITION")
-                .font(.system(size: 13, weight: .heavy))
-                .kerning(4)
-                .foregroundStyle(.white.opacity(0.6))
+            Text("FORMULA RACING")
+                .font(.system(size: 12, weight: .heavy))
+                .kerning(5)
+                .foregroundStyle(.white.opacity(0.55))
         }
     }
 

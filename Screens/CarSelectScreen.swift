@@ -7,11 +7,7 @@ struct CarSelectScreen: View {
     let onBack: () -> Void
 
     private var bg: some View {
-        LinearGradient(colors: [
-            Color(red: 0.05, green: 0.08, blue: 0.18),
-            Color(red: 0.10, green: 0.18, blue: 0.30)
-        ], startPoint: .top, endPoint: .bottom)
-        .ignoresSafeArea()
+        Color.black.ignoresSafeArea()
     }
 
     private var topBar: some View {
@@ -100,10 +96,7 @@ struct CarCard: View {
     private var carPreview: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 14)
-                .fill(LinearGradient(colors: [
-                    Color.white.opacity(0.05),
-                    Color.black.opacity(0.2)
-                ], startPoint: .top, endPoint: .bottom))
+                .fill(Color.white.opacity(0.05))
                 .frame(width: 130, height: 78)
             if locked {
                 Image(systemName: "lock.fill")
@@ -208,10 +201,8 @@ struct StatBar: View {
         ZStack(alignment: .leading) {
             Capsule().fill(Color.white.opacity(0.15))
                 .frame(width: 50, height: 4)
-            Capsule().fill(LinearGradient(colors: [.cyan, .blue],
-                                          startPoint: .leading,
-                                          endPoint: .trailing))
-            .frame(width: CGFloat(50 * clamped), height: 4)
+            Capsule().fill(Color.white)
+                .frame(width: CGFloat(50 * clamped), height: 4)
         }
     }
 
