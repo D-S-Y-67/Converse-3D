@@ -1,4 +1,5 @@
 import SwiftUI
+import simd
 
 struct TrackCard: View {
     let layout: TrackLayout
