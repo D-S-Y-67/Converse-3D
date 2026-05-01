@@ -12,40 +12,53 @@ final class BotCar {
     var finishTime: Double = 0
     var hasFinished: Bool = false
 
-    let topSpeed: Float
+    let baseTopSpeed: Float
     let acceleration: Float
     let cornerSkill: Float
     let lateralBias: Float
     let bodyColor: UIColor
     let accentColor: UIColor
+    let team: F1Team
     let name: String
 
     let node: SCNNode
     private let rearWingNode: SCNNode?
 
+    var drsActive: Bool = false
+    var drsCooldown: Double = 0
+    private var drsTimeRemaining: Double = 0
+    private let drsDuration: Double = 5.0
+    private let drsCooldownTime: Double = 4.0
+
+    var topSpeed: Float {
+        baseTopSpeed * (drsActive ? 1.22 : 1.0)
+    }
+
     init(position: SCNVector3, heading: Float, trackProgress: Float,
          topSpeed: Float, acceleration: Float, cornerSkill: Float,
-         lateralBias: Float, bodyColor: UIColor, accentColor: UIColor,
-         name: String, treadRadius: CGFloat, treadColor: UIColor,
+         lateralBias: Float, team: F1Team,
+         driverName: String, treadRadius: CGFloat, treadColor: UIColor,
          treadStripeColor: UIColor) {
         self.position = position
         self.heading = heading
         self.velocity = 0
         self.trackProgress = trackProgress
         self.lapsDone = 0
-        self.topSpeed = topSpeed
+        self.baseTopSpeed = topSpeed
         self.acceleration = acceleration
         self.cornerSkill = cornerSkill
         self.lateralBias = lateralBias
-        self.bodyColor = bodyColor
-        self.accentColor = accentColor
-        self.name = name
-        let built = F1CarBuilder.build(bodyColor: bodyColor,
-                                       accentColor: accentColor,
-                                       cabinColor: UIColor(white: 0.05, alpha: 1),
+        self.team = team
+        self.bodyColor = team.primary
+        self.accentColor = team.secondary
+        self.name = driverName
+        let built = F1CarBuilder.build(bodyColor: team.primary,
+                                       accentColor: team.secondary,
+                                       cabinColor: team.secondary,
                                        treadRadius: treadRadius,
                                        treadColor: treadColor,
-                                       treadStripeColor: treadStripeColor)
+                                       treadStripeColor: treadStripeColor,
+                                       decal: team.abbrev)
         self.node = built.node
         self.rearWingNode = built.rearWingFlap
         node.position = position
@@ -59,9 +72,12 @@ final class BotCar {
         if hasFinished {
             velocity = max(0, velocity - 18 * dt)
             advancePosition(dt: dt)
+            clampToTrack(layout: layout)
             updateNode()
             return
         }
+
+        updateDRS(dt: dt, layout: layout)
 
         let lookahead: Float = 5.5 / max(layout.totalLength, 1)
         let aimT = trackProgress + lookahead
@@ -86,13 +102,15 @@ final class BotCar {
         let cornerLimit = topSpeed * max(0.42, 1.0 - curve * (28 - cornerSkill * 6))
         let targetSpeed = max(cornerLimit, topSpeed * 0.42)
 
+        let accel = acceleration * (drsActive ? 1.10 : 1.0)
         if velocity < targetSpeed - 0.5 {
-            velocity = min(velocity + acceleration * dt, targetSpeed)
+            velocity = min(velocity + accel * dt, targetSpeed)
         } else if velocity > targetSpeed + 0.5 {
-            velocity = max(velocity - acceleration * 1.6 * dt, targetSpeed)
+            velocity = max(velocity - accel * 1.6 * dt, targetSpeed)
         }
 
         advancePosition(dt: dt)
+        clampToTrack(layout: layout)
 
         let newT = layout.trackProgress(for: SIMD2(position.x, position.z))
         let delta = newT - trackProgress
@@ -113,10 +131,45 @@ final class BotCar {
         updateNode()
     }
 
+    private func updateDRS(dt: Float, layout: TrackLayout) {
+        let inZone = layout.isDRSZone(at: trackProgress)
+        if drsActive {
+            drsTimeRemaining -= Double(dt)
+            if drsTimeRemaining <= 0 || !inZone {
+                drsActive = false
+                drsCooldown = drsCooldownTime
+            }
+        } else {
+            if drsCooldown > 0 {
+                drsCooldown = max(0, drsCooldown - Double(dt))
+            } else if inZone {
+                drsActive = true
+                drsTimeRemaining = drsDuration
+            }
+        }
+        setRearWing(open: drsActive)
+    }
+
     func setRearWing(open: Bool) {
         guard let wing = rearWingNode else { return }
         let target: Float = open ? -0.35 : 0
         wing.eulerAngles.x = wing.eulerAngles.x + (target - wing.eulerAngles.x) * 0.4
+    }
+
+    func clampToTrack(layout: TrackLayout) {
+        let xz = SIMD2<Float>(position.x, position.z)
+        let t = layout.trackProgress(for: xz)
+        let centerP = layout.point(at: t)
+        let off = xz - centerP
+        let dist = simd_length(off)
+        let limit = layout.trackWidth / 2 - 0.6
+        if dist > limit && dist > 0.001 {
+            let n = off / dist
+            let clamped = centerP + n * limit
+            position.x = clamped.x
+            position.z = clamped.y
+            velocity *= 0.85
+        }
     }
 
     private func advancePosition(dt: Float) {

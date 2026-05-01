@@ -8,11 +8,7 @@ struct ReadyScreen: View {
     let onBack: () -> Void
 
     private var bg: some View {
-        LinearGradient(colors: [
-            Color.black,
-            Color(red: 0.10, green: 0.05, blue: 0.20)
-        ], startPoint: .top, endPoint: .bottom)
-        .ignoresSafeArea()
+        Color.black.ignoresSafeArea()
     }
 
     private var backButton: some View {

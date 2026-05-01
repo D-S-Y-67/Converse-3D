@@ -2,7 +2,8 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var state = GameState()
-    @State private var screen: AppScreen = .splash
+    @StateObject private var profile = UserProfile.shared
+    @State private var screen: AppScreen = .onboarding
     @State private var carIndex = 0
     @State private var treadIndex = 0
     @State private var trackIndex = 0
@@ -11,6 +12,9 @@ struct ContentView: View {
     @ViewBuilder
     private func screenView() -> some View {
         switch screen {
+        case .onboarding:
+            OnboardingScreen(profile: profile,
+                             onContinue: { enterAfterOnboarding() })
         case .splash:
             SplashScreen(onStart: { screen = .carSelect },
                          bestScore: state.bestScore)
@@ -44,6 +48,10 @@ struct ContentView: View {
         ZStack {
             GameplayView(state: state, onPause: { state.isPaused = true })
                 .id(sessionId)
+            KeyboardListener(state: state,
+                             onPause: { state.isPaused.toggle() })
+                .allowsHitTesting(false)
+                .frame(width: 1, height: 1)
             if state.isPaused {
                 PauseOverlay(onResume: { state.isPaused = false },
                              onMenu: {
@@ -70,12 +78,28 @@ struct ContentView: View {
     var body: some View {
         screenView()
             .animation(.easeInOut(duration: 0.25), value: screen)
+            .onAppear {
+                if profile.hasOnboarded {
+                    screen = .splash
+                    syncCarIndexFromProfile()
+                }
+            }
+    }
+
+    private func enterAfterOnboarding() {
+        syncCarIndexFromProfile()
+        screen = .splash
+    }
+
+    private func syncCarIndexFromProfile() {
+        carIndex = CarConfig.index(for: profile.favoriteTeam)
     }
 
     private func startReady() {
         state.car = CarConfig.all[carIndex]
         state.tread = TreadConfig.all[treadIndex]
         state.track = TrackLayout.all[trackIndex]
+        state.playerTeam = state.car.team
         state.speed = 0
         state.lap = 0
         state.lapTime = 0
@@ -83,7 +107,7 @@ struct ContentView: View {
         state.lastLapTime = 0
         state.totalRaceTime = 0
         state.playerPosition = 1
-        state.totalCars = 6
+        state.totalCars = 22
         state.raceResults = []
         state.racePhase = .grid
         state.countdownValue = 3

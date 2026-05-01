@@ -6,7 +6,7 @@ struct DRSIndicator: View {
 
     private var statusText: String {
         if active { return "DRS OPEN" }
-        if available { return "DRS READY" }
+        if available { return "DRS ARMED" }
         return "DRS"
     }
 

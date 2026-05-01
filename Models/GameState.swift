@@ -14,7 +14,8 @@ final class GameState: ObservableObject {
     @Published var racePhase: RacePhase = .grid
     @Published var countdownValue: Int = 3
     @Published var playerPosition: Int = 1
-    @Published var totalCars: Int = 6
+    @Published var totalCars: Int = 22
+    @Published var playerTeam: F1Team = .ferrari
     @Published var raceResults: [RaceResult] = []
 
     @Published var drsHeld: Bool = false

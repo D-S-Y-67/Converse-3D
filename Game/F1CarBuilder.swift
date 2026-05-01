@@ -12,7 +12,8 @@ enum F1CarBuilder {
                       cabinColor: UIColor,
                       treadRadius: CGFloat,
                       treadColor: UIColor,
-                      treadStripeColor: UIColor) -> F1CarBuilt {
+                      treadStripeColor: UIColor,
+                      decal: String? = nil) -> F1CarBuilt {
         let car = SCNNode()
 
         let bodyMat = makeMaterial(diffuse: bodyColor, metalness: 0.55, roughness: 0.25)
@@ -235,6 +236,22 @@ enum F1CarBuilder {
             e.position = SCNVector3(x, 0.4, 2.3)
             car.addChildNode(e)
             emitters.append(e)
+        }
+
+        if let decal = decal, !decal.isEmpty {
+            let text = SCNText(string: decal, extrusionDepth: 0.04)
+            text.font = UIFont.systemFont(ofSize: 0.7, weight: .black)
+            text.flatness = 0.05
+            text.firstMaterial = makeMaterial(
+                diffuse: cabinColor, metalness: 0.2, roughness: 0.4,
+                emission: cabinColor.withAlphaComponent(0.3))
+            let textN = SCNNode(geometry: text)
+            let (minB, maxB) = text.boundingBox
+            let w = maxB.x - minB.x
+            textN.position = SCNVector3(-w / 2, 0.50, -3.45)
+            textN.eulerAngles = SCNVector3(-Float.pi / 2, 0, 0)
+            textN.scale = SCNVector3(0.55, 0.55, 0.55)
+            car.addChildNode(textN)
         }
 
         car.castsShadow = true
