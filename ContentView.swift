@@ -98,6 +98,7 @@ struct ContentView: View {
         state.tread = TreadConfig.all[treadIndex]
         state.track = TrackLayout.all[trackIndex]
         state.playerTeam = state.car.team
+        state.totalLaps = state.track.lapCount
         state.speed = 0
         state.lap = 0
         state.lapTime = 0

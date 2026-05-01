@@ -267,7 +267,7 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func resolveCarCollisions() {
-        let minSep: Float = 2.6
+        let minSep: Float = 3.2
         struct Item { let id: Int; var pos: SCNVector3; var vel: Float }
         var items: [Item] = [Item(id: -1, pos: carNode.position, vel: velocity)]
         for (i, b) in bots.enumerated() {
@@ -289,8 +289,8 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
                     items[i].pos.z -= nz * overlap
                     items[j].pos.x += nx * overlap
                     items[j].pos.z += nz * overlap
-                    items[i].vel *= 0.88
-                    items[j].vel *= 0.88
+                    items[i].vel *= 0.96
+                    items[j].vel *= 0.96
                 }
             }
         }
@@ -483,11 +483,7 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
             let clamped = centerP + n * limit
             newPos.x = clamped.x
             newPos.z = clamped.y
-            let h = carNode.eulerAngles.y
-            let fwd = SIMD2<Float>(-sin(h), -cos(h))
-            let along = simd_dot(SIMD2<Float>(-sin(h), -cos(h)) * velocity,
-                                 fwd)
-            velocity = along * 0.78
+            velocity *= 0.94
         }
 
         let from = SCNVector3(newPos.x, newPos.y + 12, newPos.z)
@@ -620,14 +616,8 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func spawnBotsOnGrid() {
-        let startT: Float = 0
-        let startP = layout.point(at: startT)
-        let tang = layout.tangent(at: startT)
-        let perp = SIMD2<Float>(-tang.y, tang.x)
-        let backward = -tang
-        let rowSpacing: Float = 5.2
-        let lateralOff: Float = 2.8
-        let baseHeading = atan2(-tang.x, -tang.y)
+        let rowSpacing: Float = 6.0
+        let lateralOff: Float = 2.6
 
         let playerTeam = state?.playerTeam ?? .ferrari
         let roster = botRoster(playerTeam: playerTeam)
@@ -635,17 +625,26 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
         for (i, entry) in roster.enumerated() {
             let row = (i / 2) + 1
             let side: Float = (i % 2 == 0) ? -1 : +1
-            let speedScale = 0.99 - Float(i) * 0.005
-            let skill: Float = 3.6 - Float(i) * 0.06
-            let lateralJitter: Float = Float(i % 5 - 2) * 0.7
-            let pos2D = startP
-                + backward * (Float(row) * rowSpacing)
-                + perp * (side * lateralOff)
+            let arc = Float(row) * rowSpacing
+            var t = -arc / max(layout.totalLength, 1)
+            t = (t.truncatingRemainder(dividingBy: 1) + 1)
+                .truncatingRemainder(dividingBy: 1)
+
+            let basePoint = layout.point(at: t)
+            let tang = layout.tangent(at: t)
+            let perp = SIMD2<Float>(-tang.y, tang.x)
+            let heading = atan2(-tang.x, -tang.y)
+            let pos2D = basePoint + perp * (side * lateralOff)
             let pos = SCNVector3(pos2D.x,
                                  Float(tread.radius) + 0.1, pos2D.y)
+
+            let speedScale = 0.99 - Float(i) * 0.005
+            let skill: Float = 3.6 - Float(i) * 0.06
+            let lateralJitter: Float = side * lateralOff * 0.55
+
             let bot = BotCar(
-                position: pos, heading: baseHeading,
-                trackProgress: startT,
+                position: pos, heading: heading,
+                trackProgress: t,
                 topSpeed: car.topSpeed * speedScale,
                 acceleration: car.acceleration * 0.94,
                 cornerSkill: skill,
@@ -808,29 +807,72 @@ final class GameWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func addBarriers(steps: Int) {
-        let barrierMat = makeMaterial(UIColor.white,
-                                      metalness: 0.1, roughness: 0.7)
-        let accent = makeMaterial(layout.accentColor,
-                                  metalness: 0.1, roughness: 0.6)
+        let wallMat = makeMaterial(
+            UIColor(white: 0.93, alpha: 1),
+            metalness: 0.05, roughness: 0.45,
+            emission: UIColor(white: 0.10, alpha: 1))
+        let capMat = makeMaterial(
+            UIColor(red: 0.85, green: 0.10, blue: 0.10, alpha: 1),
+            metalness: 0.1, roughness: 0.5)
+        let accentMat = makeMaterial(layout.accentColor,
+                                     metalness: 0.3, roughness: 0.4)
+
+        let wallHeight: Float = 2.0
+        let wallThickness: Float = 0.35
+        let segLen = layout.totalLength / Float(steps) * 2 + 0.3
+        let edge = layout.trackWidth / 2 + 0.4
+
         for i in stride(from: 0, to: steps, by: 2) {
             let t = Float(i) / Float(steps)
             let p = layout.point(at: t)
             let tang = layout.tangent(at: t)
             let perp = SIMD2<Float>(-tang.y, tang.x)
             let angle = atan2(tang.x, tang.y)
-            let edge = layout.trackWidth / 2 + 0.5
-            let segLen = layout.totalLength / Float(steps) * 2 + 0.3
+
             for side: Float in [-1, 1] {
                 let pos = p + perp * (edge * side)
-                let geom = SCNBox(width: 0.4, height: 0.5,
+
+                let wall = SCNBox(width: CGFloat(wallThickness),
+                                  height: CGFloat(wallHeight),
                                   length: CGFloat(segLen),
-                                  chamferRadius: 0.06)
-                geom.firstMaterial = i % 4 == 0 ? accent : barrierMat
-                let n = SCNNode(geometry: geom)
-                n.position = SCNVector3(pos.x, 0.30, pos.y)
-                n.eulerAngles.y = angle
-                n.castsShadow = true
-                scene.rootNode.addChildNode(n)
+                                  chamferRadius: 0.04)
+                wall.firstMaterial = wallMat
+                let wallN = SCNNode(geometry: wall)
+                wallN.position = SCNVector3(pos.x, wallHeight / 2, pos.y)
+                wallN.eulerAngles.y = angle
+                wallN.castsShadow = true
+                scene.rootNode.addChildNode(wallN)
+
+                let cap = SCNBox(width: CGFloat(wallThickness + 0.05),
+                                 height: 0.18,
+                                 length: CGFloat(segLen),
+                                 chamferRadius: 0.03)
+                cap.firstMaterial = capMat
+                let capN = SCNNode(geometry: cap)
+                capN.position = SCNVector3(pos.x,
+                                           wallHeight + 0.09, pos.y)
+                capN.eulerAngles.y = angle
+                capN.castsShadow = true
+                scene.rootNode.addChildNode(capN)
+            }
+        }
+
+        let pillarSpacing: Float = 30
+        let pillarCount = max(4, Int(layout.totalLength / pillarSpacing))
+        for k in 0..<pillarCount {
+            let t = Float(k) / Float(pillarCount)
+            let p = layout.point(at: t)
+            let tang = layout.tangent(at: t)
+            let perp = SIMD2<Float>(-tang.y, tang.x)
+            for side: Float in [-1, 1] {
+                let pos = p + perp * ((edge + 0.4) * side)
+                let pillar = SCNBox(width: 0.5, height: 2.6,
+                                    length: 0.5, chamferRadius: 0.05)
+                pillar.firstMaterial = accentMat
+                let pN = SCNNode(geometry: pillar)
+                pN.position = SCNVector3(pos.x, 1.3, pos.y)
+                pN.castsShadow = true
+                scene.rootNode.addChildNode(pN)
             }
         }
     }
