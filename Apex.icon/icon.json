@@ -1,0 +1,43 @@
+{
+  "fill": { "solid": "#0A0A0A" },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "background",
+          "fill": { "solid": "#0A0A0A" }
+        },
+        {
+          "image-name": "chevron",
+          "fill": { "solid": "#DC0000" },
+          "position": {
+            "scale": 0.78,
+            "translation-in-points": [0, -8]
+          },
+          "glass": true,
+          "specular": true,
+          "shadow": {
+            "kind": "neutral",
+            "opacity": 0.35
+          }
+        },
+        {
+          "image-name": "specular",
+          "fill": { "solid": "#FFFFFF" },
+          "opacity": 0.55,
+          "blend-mode": "screen",
+          "position": {
+            "scale": 0.95,
+            "translation-in-points": [0, -2]
+          },
+          "glass": true
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "ios": true,
+    "macos": true,
+    "watchos": false
+  }
+}
