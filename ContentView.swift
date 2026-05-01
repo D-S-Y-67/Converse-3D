@@ -50,8 +50,6 @@ struct ContentView: View {
                 .id(sessionId)
             KeyboardListener(state: state,
                              onPause: { state.isPaused.toggle() })
-                .allowsHitTesting(false)
-                .frame(width: 1, height: 1)
             if state.isPaused {
                 PauseOverlay(onResume: { state.isPaused = false },
                              onMenu: {

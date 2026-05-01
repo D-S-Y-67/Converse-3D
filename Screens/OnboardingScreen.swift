@@ -52,15 +52,24 @@ struct OnboardingScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var nameInput: some View {
+        let field = TextField("", text: $draftName, prompt:
+            Text("Enter callsign").foregroundStyle(.white.opacity(0.3)))
+        #if os(iOS)
+        field.textInputAutocapitalization(.characters)
+        #else
+        field
+        #endif
+    }
+
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("DRIVER NAME")
                 .font(.system(size: 11, weight: .heavy))
                 .kerning(2.5)
                 .foregroundStyle(.white.opacity(0.55))
-            TextField("", text: $draftName, prompt:
-                Text("Enter callsign").foregroundStyle(.white.opacity(0.3)))
-                .textInputAutocapitalization(.characters)
+            nameInput
                 .autocorrectionDisabled(true)
                 .focused($nameFocused)
                 .font(.system(size: 22, weight: .black))
